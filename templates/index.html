@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Traffic Violation Detection System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --dark-color: #34495e;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(44, 62, 80, 0.95) !important;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            color: white !important;
+        }
+
+        .hero-section {
+            background: linear-gradient(135deg, rgba(44, 62, 80, 0.8), rgba(52, 73, 94, 0.8));
+            color: white;
+            padding: 100px 0;
+            text-align: center;
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .hero-subtitle {
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .upload-section {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin: 50px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .upload-area {
+            border: 3px dashed var(--secondary-color);
+            border-radius: 15px;
+            padding: 60px 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area:hover {
+            border-color: var(--accent-color);
+            background: rgba(52, 152, 219, 0.05);
+            transform: translateY(-5px);
+        }
+
+        .upload-area.dragover {
+            border-color: var(--success-color);
+            background: rgba(39, 174, 96, 0.1);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            color: var(--secondary-color);
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: var(--dark-color);
+            margin-bottom: 10px;
+        }
+
+        .upload-subtext {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .results-section {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin: 30px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .violation-card {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 10px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .violation-details {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--secondary-color), #2980b9);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--accent-color), #c0392b);
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .progress-bar {
+            background: linear-gradient(135deg, var(--secondary-color), #2980b9);
+            height: 8px;
+            border-radius: 4px;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--secondary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .stats-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .stats-number {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .fine-section {
+            background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .screenshot-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .screenshot-item {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .screenshot-item img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .screenshot-info {
+            padding: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .upload-area {
+                padding: 40px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-shield-alt"></i> AI Traffic Monitor
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#home">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#upload">Upload</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dashboard">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#about">About</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero-section">
+        <div class="container">
+            <div data-aos="fade-down">
+                <h1 class="hero-title">
+                    <i class="fas fa-robot"></i> AI Traffic Violation Detection
+                </h1>
+                <p class="hero-subtitle">
+                    Advanced AI system for automatic traffic violation detection and fine management
+                </p>
+                <a href="#upload" class="btn btn-primary btn-lg">
+                    <i class="fas fa-upload"></i> Start Detection
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="container" style="margin-top: 50px;">
+        <div class="row">
+            <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
+                <div class="feature-card text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-video" style="color: var(--secondary-color);"></i>
+                    </div>
+                    <h4>Video Analysis</h4>
+                    <p>Upload videos for comprehensive traffic analysis and violation detection</p>
+                </div>
+            </div>
+            <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
+                <div class="feature-card text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-camera" style="color: var(--accent-color);"></i>
+                    </div>
+                    <h4>Image Detection</h4>
+                    <p>Instant violation detection from uploaded images with automatic screenshots</p>
+                </div>
+            </div>
+            <div class="col-md-4" data-aos="fade-up" data-aos-delay="300">
+                <div class="feature-card text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-receipt" style="color: var(--success-color);"></i>
+                    </div>
+                    <h4>Auto Fining</h4>
+                    <p>Automatic fine generation and SMS notification system</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Upload Section -->
+    <section id="upload" class="container">
+        <div class="upload-section" data-aos="fade-up">
+            <h2 class="text-center mb-4">
+                <i class="fas fa-cloud-upload-alt"></i> Upload Media for Analysis
+            </h2>
+            
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+                <div class="upload-text">
+                    Drop your files here or click to browse
+                </div>
+                <div class="upload-subtext">
+                    Supports: JPG, PNG, MP4, AVI, MOV (Max 500MB)
+                </div>
+                <input type="file" id="fileInput" accept="image/*,video/*" style="display: none;">
+            </div>
+
+            <div class="progress mt-4" style="display: none;" id="uploadProgress">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+            </div>
+
+            <div class="text-center mt-4" id="loadingSection" style="display: none;">
+                <div class="loading-spinner mx-auto mb-3"></div>
+                <p>Processing your file... Please wait</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Results Section -->
+    <section class="container">
+        <div class="results-section" id="resultsSection">
+            <h2 class="text-center mb-4">
+                <i class="fas fa-search"></i> Detection Results
+            </h2>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="stats-card">
+                        <div class="stats-number" id="totalViolations">0</div>
+                        <div>Total Violations</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="stats-card">
+                        <div class="stats-number" id="totalFines">₹0</div>
+                        <div>Total Fines</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="violationsList"></div>
+            
+            <div class="fine-section mt-4">
+                <h4><i class="fas fa-gavel"></i> Issue Fine</h4>
+                <div class="row">
+                    <div class="col-md-6">
+                        <select class="form-select" id="violationSelect">
+                            <option value="">Select violation to fine</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="tel" class="form-control" id="phoneNumber" placeholder="Phone number">
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-danger" onclick="issueFine()">
+                            <i class="fas fa-paper-plane"></i> Send Fine
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <h4><i class="fas fa-images"></i> Screenshots</h4>
+                <div class="screenshot-gallery" id="screenshotGallery"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white text-center py-4 mt-5">
+        <div class="container">
+            <p>&copy; 2024 AI Traffic Violation Detection System. All rights reserved.</p>
+            <p>Powered by Advanced AI & Machine Learning</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
+    <script>
+        // Initialize AOS
+        AOS.init({
+            duration: 1000,
+            once: true
+        });
+
+        // Upload functionality
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const uploadProgress = document.getElementById('uploadProgress');
+        const loadingSection = document.getElementById('loadingSection');
+        const resultsSection = document.getElementById('resultsSection');
+
+        // Click to upload
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileUpload(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileUpload(e.target.files[0]);
+            }
+        });
+
+        function handleFileUpload(file) {
+            // Show loading
+            loadingSection.style.display = 'block';
+            uploadProgress.style.display = 'block';
+            resultsSection.style.display = 'none';
+
+            // Create FormData
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Upload file
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadingSection.style.display = 'none';
+                uploadProgress.style.display = 'none';
+                
+                if (data.success) {
+                    displayResults(data);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                loadingSection.style.display = 'none';
+                uploadProgress.style.display = 'none';
+                alert('Upload failed: ' + error);
+            });
+        }
+
+        function displayResults(data) {
+            resultsSection.style.display = 'block';
+            
+            // Update stats
+            const totalViolations = data.violations ? data.violations.length : 0;
+            const totalFines = data.violations ? 
+                data.violations.reduce((sum, v) => sum + v.violations.reduce((s, viol) => s + viol.fine_amount, 0), 0) : 0;
+            
+            document.getElementById('totalViolations').textContent = totalViolations;
+            document.getElementById('totalFines').textContent = '₹' + totalFines;
+
+            // Display violations
+            const violationsList = document.getElementById('violationsList');
+            const violationSelect = document.getElementById('violationSelect');
+            
+            violationsList.innerHTML = '';
+            violationSelect.innerHTML = '<option value="">Select violation to fine</option>';
+
+            if (data.violations && data.violations.length > 0) {
+                data.violations.forEach((violation, index) => {
+                    const violationCard = document.createElement('div');
+                    violationCard.className = 'violation-card';
+                    
+                    const violationTypes = violation.violations.map(v => v.type).join(', ');
+                    const violationFines = violation.violations.reduce((sum, v) => sum + v.fine_amount, 0);
+                    
+                    let ownerInfo = '';
+                    if (violation.owner_info) {
+                        ownerInfo = `
+                            <p><strong>Owner:</strong> ${violation.owner_info.owner}</p>
+                            <p><strong>Phone:</strong> ${violation.owner_info.phone}</p>
+                            <p><strong>Address:</strong> ${violation.owner_info.address}</p>
+                        `;
+                    }
+                    
+                    violationCard.innerHTML = `
+                        <h5><i class="fas fa-exclamation-triangle"></i> ${violation.vehicle_type.toUpperCase()} Violation</h5>
+                        <div class="violation-details">
+                            <p><strong>Vehicle Type:</strong> ${violation.vehicle_type}</p>
+                            <p><strong>License Plate:</strong> ${violation.license_plate || 'Not detected'}</p>
+                            <p><strong>Violations:</strong> ${violationTypes}</p>
+                            <p><strong>Fine Amount:</strong> ₹${violationFines}</p>
+                            ${ownerInfo}
+                        </div>
+                    `;
+                    
+                    violationsList.appendChild(violationCard);
+                    
+                    // Add to select with owner info - USE ACTUAL DATABASE VIOLATION ID
+                    const option = document.createElement('option');
+                    // Use the actual violation ID from database, not array index
+                    option.value = data.violation_ids && data.violation_ids[index] ? data.violation_ids[index] : index;
+                    option.dataset.phone = violation.owner_info ? violation.owner_info.phone : '';
+                    option.dataset.owner = violation.owner_info ? violation.owner_info.owner : '';
+                    option.textContent = `${violation.vehicle_type} - ${violation.license_plate || 'Unknown'} - ₹${violationFines}`;
+                    violationSelect.appendChild(option);
+                });
+            } else {
+                violationsList.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle"></i> No violations detected!</div>';
+            }
+
+            // Display screenshots
+            if (data.screenshot_path) {
+                const screenshotGallery = document.getElementById('screenshotGallery');
+                screenshotGallery.innerHTML = `
+                    <div class="screenshot-item">
+                        <img src="/${data.screenshot_path}" alt="Violation Screenshot">
+                        <div class="screenshot-info">
+                            <h6>Violation Screenshot</h6>
+                            <p>Automatically captured with violation highlights</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function issueFine() {
+            const violationIndex = document.getElementById('violationSelect').value;
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            
+            if (!violationIndex || !phoneNumber) {
+                alert('Please select a violation and enter phone number');
+                return;
+            }
+            
+            fetch('/issue_fine', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    violation_id: violationIndex,
+                    phone_number: phoneNumber
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Fine issued successfully! SMS notification sent.');
+                } else {
+                    alert('Error issuing fine: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error);
+            });
+        }
+
+        // Auto-populate phone number when violation is selected
+        document.getElementById('violationSelect').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const phoneInput = document.getElementById('phoneNumber');
+            
+            if (selectedOption.dataset.phone) {
+                phoneInput.value = selectedOption.dataset.phone;
+                phoneInput.style.backgroundColor = '#e8f5e8'; // Light green background
+            } else {
+                phoneInput.value = '';
+                phoneInput.style.backgroundColor = '';
+            }
+        });
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>

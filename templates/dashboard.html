@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart City Traffic Dashboard 2030</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #1a73e8;
+            --secondary-color: #34a853;
+            --danger-color: #ea4335;
+            --warning-color: #fbbc04;
+            --dark-color: #202124;
+            --light-color: #f8f9fa;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            background: linear-gradient(180deg, #1a73e8 0%, #1557b0 100%);
+            min-height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 250px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin: 5px 10px;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .stats-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stats-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .stats-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .violation-item {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--danger-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .violation-item.resolved {
+            border-left-color: var(--secondary-color);
+        }
+
+        .badge-violation {
+            background: var(--danger-color);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .badge-resolved {
+            background: var(--secondary-color);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .traffic-map {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .live-feed {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .camera-feed {
+            background: #000;
+            border-radius: 8px;
+            height: 200px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .alert-panel {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .weather-widget {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .btn-smart {
+            background: linear-gradient(135deg, var(--primary-color), #1557b0);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-smart:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(26, 115, 232, 0.4);
+        }
+
+        .real-time-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: var(--secondary-color);
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 1.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
+        .smart-controls {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .traffic-light {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        .light-red { background: #ff4757; }
+        .light-yellow { background: #ffa502; }
+        .light-green { background: #2ed573; }
+        
+        .clickable {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .clickable:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            border-color: rgba(255,255,255,0.3);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="p-3">
+            <h4 class="text-white mb-4">
+                <i class="fas fa-city"></i> Smart City 2030
+            </h4>
+            <nav class="nav flex-column">
+                <a class="nav-link active" href="#dashboard" onclick="showSection('dashboard')">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+                <a class="nav-link" href="#violations" onclick="showSection('violations')">
+                    <i class="fas fa-exclamation-triangle"></i> Violations
+                </a>
+                <a class="nav-link" href="#analytics" onclick="showSection('analytics')">
+                    <i class="fas fa-chart-line"></i> Analytics
+                </a>
+                <a class="nav-link" href="#traffic-control" onclick="showSection('traffic-control')">
+                    <i class="fas fa-traffic-light"></i> Traffic Control
+                </a>
+                <a class="nav-link" href="#cameras" onclick="showSection('cameras')">
+                    <i class="fas fa-video"></i> Live Cameras
+                </a>
+                <a class="nav-link" href="#alerts" onclick="showSection('alerts')">
+                    <i class="fas fa-bell"></i> Alerts
+                </a>
+                <a class="nav-link" href="#settings" onclick="showSection('settings')">
+                    <i class="fas fa-cog"></i> Settings
+                </a>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <div class="header">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h2><i class="fas fa-robot"></i> AI Traffic Management System</h2>
+                    <p class="mb-0 text-muted">
+                        <span class="real-time-indicator"></span>
+                        Real-time monitoring and control
+                    </p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <div class="weather-widget d-inline-block">
+                        <div><i class="fas fa-sun"></i> 28°C</div>
+                        <small>Clear Sky</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="section">
+            <div class="row">
+                <!-- Stats Cards -->
+                <div class="col-lg-3 col-md-6">
+                    <div class="stats-card">
+                        <div class="stats-number text-primary" id="totalViolationsToday">0</div>
+                        <div class="stats-label">Violations Today</div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="stats-card">
+                        <div class="stats-number text-success" id="totalFinesCollected">₹0</div>
+                        <div class="stats-label">Fines Collected</div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="stats-card">
+                        <div class="stats-number text-info" id="activeCameras">24</div>
+                        <div class="stats-label">Active Cameras</div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="stats-card">
+                        <div class="stats-number text-warning" id="averageTrafficSpeed">45</div>
+                        <div class="stats-label">Avg Speed (km/h)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Traffic Flow Chart -->
+                <div class="col-lg-8">
+                    <div class="chart-container">
+                        <h5 class="mb-3">Traffic Flow Analysis</h5>
+                        <canvas id="trafficFlowChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Live Alerts -->
+                <div class="col-lg-4">
+                    <div class="alert-panel">
+<h5><i class="fas fa-exclamation-circle"></i> Live Alerts</h5>
+
+<div class="alert alert-info clickable" onclick="alert('Nearest Ambulance: 102 - Location: MG Road');">
+    🚑 Nearest Ambulance Contact
+</div>
+
+<div class="alert alert-warning clickable" onclick="alert('Nearest Fire Station: 101 - Location: Brigade Road');">
+    🔥 Nearest Fire Station Contact
+</div>
+
+<div class="alert alert-secondary clickable" onclick="alert('Nearest Police Station: 100 - Location: Electronic City');">
+    🚔 Nearest Police Station Contact
+</div>
+                        <div id="liveAlerts">
+                            <div class="alert alert-light mb-2">
+                                <small>12:30 PM - Speed violation detected at MG Road</small>
+                            </div>
+                            <div class="alert alert-light mb-2">
+                                <small>12:28 PM - No helmet violation at Brigade Road</small>
+                            </div>
+                            <div class="alert alert-light mb-0">
+                                <small>12:25 PM - Red light violation at Silk Board</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Traffic Map -->
+                <div class="col-lg-8">
+                    <div class="traffic-map">
+                        <div class="text-center">
+                            <i class="fas fa-map-marked-alt fa-3x mb-3"></i>
+                            <h5>Interactive Traffic Map</h5>
+                            <p>Real-time traffic density and violation hotspots</p>
+                            <button class="btn btn-smart">Load Map</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Smart Controls -->
+                <div class="col-lg-4">
+                    <div class="smart-controls">
+                        <h5 class="mb-3">Smart Traffic Lights</h5>
+                        <div class="mb-3">
+                            <strong>MG Road Junction</strong>
+                            <div class="mt-2">
+                                <span class="traffic-light light-green"></span>
+                                <span class="traffic-light light-red"></span>
+                                <span class="traffic-light light-red"></span>
+                                <span class="ms-2">Green - 45s</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Brigade Road</strong>
+                            <div class="mt-2">
+                                <span class="traffic-light light-red"></span>
+                                <span class="traffic-light light-yellow"></span>
+                                <span class="traffic-light light-red"></span>
+                                <span class="ms-2">Yellow - 5s</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Electronic City</strong>
+                            <div class="mt-2">
+                                <span class="traffic-light light-red"></span>
+                                <span class="traffic-light light-red"></span>
+                                <span class="traffic-light light-green"></span>
+                                <span class="ms-2">Green - 30s</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-smart btn-sm">Override Control</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Violations Section -->
+        <div id="violations" class="section" style="display: none;">
+            <div class="row">
+                <div class="col-12">
+                    <div class="chart-container">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5>Recent Violations</h5>
+                            <button class="btn btn-smart" onclick="loadViolations()">
+                                <i class="fas fa-refresh"></i> Refresh
+                            </button>
+                        </div>
+                        <div id="violationsList">
+                            <!-- Violations will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Section -->
+        <div id="analytics" class="section" style="display: none;">
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="chart-container">
+                        <h5 class="mb-3">Violation Types Distribution</h5>
+                        <canvas id="violationTypesChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="chart-container">
+                        <h5 class="mb-3">Hourly Traffic Pattern</h5>
+                        <canvas id="hourlyTrafficChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="chart-container">
+                        <h5 class="mb-3">Monthly Violation Trends</h5>
+                        <canvas id="monthlyTrendsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Traffic Control Section -->
+        <div id="traffic-control" class="section" style="display: none;">
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="smart-controls">
+                        <h5 class="mb-4">Intelligent Traffic Control System</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h6>Zone A - CBD</h6>
+                                        <div class="my-3">
+                                            <span class="traffic-light light-green"></span>
+                                            <span class="traffic-light light-red"></span>
+                                            <span class="traffic-light light-red"></span>
+                                        </div>
+                                        <p>Traffic Flow: Heavy</p>
+                                        <button class="btn btn-smart btn-sm">Adjust Timing</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h6>Zone B - Residential</h6>
+                                        <div class="my-3">
+                                            <span class="traffic-light light-red"></span>
+                                            <span class="traffic-light light-red"></span>
+                                            <span class="traffic-light light-green"></span>
+                                        </div>
+                                        <p>Traffic Flow: Light</p>
+                                        <button class="btn btn-smart btn-sm">Adjust Timing</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h6>Zone C - Industrial</h6>
+                                        <div class="my-3">
+                                            <span class="traffic-light light-red"></span>
+                                            <span class="traffic-light light-yellow"></span>
+                                            <span class="traffic-light light-red"></span>
+                                        </div>
+                                        <p>Traffic Flow: Moderate</p>
+                                        <button class="btn btn-smart btn-sm">Adjust Timing</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="smart-controls">
+                        <h5 class="mb-3">Emergency Controls</h5>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-danger">
+                                <i class="fas fa-exclamation-triangle"></i> Emergency Override
+                            </button>
+                            <button class="btn btn-warning">
+                                <i class="fas fa-ambulance"></i> Ambulance Route
+                            </button>
+                            <button class="btn btn-info">
+                                <i class="fas fa-fire-extinguisher"></i> Fire Service Route
+                            </button>
+                            <button class="btn btn-secondary">
+                                <i class="fas fa-shield-alt"></i> Police Escort
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Cameras Section -->
+        <div id="cameras" class="section" style="display: none;">
+            <div class="row">
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="live-feed">
+                        <h6>Camera 1 - MG Road</h6>
+                        <div class="camera-feed">
+                            <i class="fas fa-video fa-2x"></i>
+                        </div>
+                        <p><span class="real-time-indicator"></span>Live Feed</p>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="live-feed">
+                        <h6>Camera 2 - Brigade Road</h6>
+                        <div class="camera-feed">
+                            <i class="fas fa-video fa-2x"></i>
+                        </div>
+                        <p><span class="real-time-indicator"></span>Live Feed</p>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="live-feed">
+                        <h6>Camera 3 - Electronic City</h6>
+                        <div class="camera-feed">
+                            <i class="fas fa-video fa-2x"></i>
+                        </div>
+                        <p><span class="real-time-indicator"></span>Live Feed</p>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="live-feed">
+                        <h6>Camera 4 - Silk Board</h6>
+                        <div class="camera-feed">
+                            <i class="fas fa-video fa-2x"></i>
+                        </div>
+                        <p><span class="real-time-indicator"></span>Live Feed</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize charts and dashboard
+        let trafficFlowChart, violationTypesChart, hourlyTrafficChart, monthlyTrendsChart;
+
+        function initCharts() {
+            // Traffic Flow Chart
+            const ctx1 = document.getElementById('trafficFlowChart').getContext('2d');
+            trafficFlowChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: ['6 AM', '9 AM', '12 PM', '3 PM', '6 PM', '9 PM'],
+                    datasets: [{
+                        label: 'Traffic Volume',
+                        data: [120, 450, 300, 250, 500, 200],
+                        borderColor: '#1a73e8',
+                        backgroundColor: 'rgba(26, 115, 232, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Violation Types Chart
+            const ctx2 = document.getElementById('violationTypesChart').getContext('2d');
+            violationTypesChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['No Helmet', 'Speeding', 'Red Light', 'No Seatbelt', 'Others'],
+                    datasets: [{
+                        data: [35, 25, 20, 15, 5],
+                        backgroundColor: ['#ea4335', '#fbbc04', '#34a853', '#4285f4', '#9aa0a6']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            // Hourly Traffic Chart
+            const ctx3 = document.getElementById('hourlyTrafficChart').getContext('2d');
+            hourlyTrafficChart = new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: ['00', '04', '08', '12', '16', '20'],
+                    datasets: [{
+                        label: 'Traffic Density',
+                        data: [20, 10, 80, 60, 90, 45],
+                        backgroundColor: 'rgba(52, 168, 83, 0.8)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Monthly Trends Chart
+            const ctx4 = document.getElementById('monthlyTrendsChart').getContext('2d');
+            monthlyTrendsChart = new Chart(ctx4, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Violations',
+                        data: [150, 120, 180, 140, 200, 160],
+                        borderColor: '#ea4335',
+                        backgroundColor: 'rgba(234, 67, 53, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: 'Fines Collected',
+                        data: [45000, 36000, 54000, 42000, 60000, 48000],
+                        borderColor: '#34a853',
+                        backgroundColor: 'rgba(52, 168, 83, 0.1)',
+                        tension: 0.4,
+                        yAxisID: 'y1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                        }
+                    }
+                }
+            });
+        }
+
+        function showSection(sectionId) {
+            // Hide all sections
+            const sections = document.querySelectorAll('.section');
+            sections.forEach(section => {
+                section.style.display = 'none';
+            });
+            
+            // Show selected section
+            document.getElementById(sectionId).style.display = 'block';
+            
+            // Update navigation
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        function loadViolations() {
+            fetch('/violations')
+                .then(response => response.json())
+                .then(data => {
+                    const violationsList = document.getElementById('violationsList');
+                    violationsList.innerHTML = '';
+                    
+                    if (data.length === 0) {
+                        violationsList.innerHTML = '<p class="text-muted">No violations found.</p>';
+                        return;
+                    }
+                    
+                    data.forEach(violation => {
+                        const violationItem = document.createElement('div');
+                        violationItem.className = 'violation-item';
+                        violationItem.innerHTML = `
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6>${violation[1]} - ${violation[2]}</h6>
+                                    <p class="mb-1">${violation[3]}</p>
+                                    <small class="text-muted">${violation[4]}</small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge-violation">₹${violation[6]}</span>
+                                    <div class="mt-1">
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewDetails(${violation[0]})">
+                                            View Details
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        violationsList.appendChild(violationItem);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading violations:', error);
+                });
+        }
+
+        function viewDetails(violationId) {
+            // Implementation for viewing violation details
+            alert('Viewing details for violation ID: ' + violationId);
+        }
+
+        function updateStats() {
+            // Simulate real-time updates
+            const stats = {
+                violations: Math.floor(Math.random() * 50) + 20,
+                fines: Math.floor(Math.random() * 100000) + 50000,
+                cameras: 24,
+                speed: Math.floor(Math.random() * 20) + 35
+            };
+            
+            document.getElementById('totalViolationsToday').textContent = stats.violations;
+            document.getElementById('totalFinesCollected').textContent = '₹' + stats.fines.toLocaleString();
+            document.getElementById('activeCameras').textContent = stats.cameras;
+            document.getElementById('averageTrafficSpeed').textContent = stats.speed;
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initCharts();
+            loadViolations();
+            updateStats();
+            
+            // Update stats every 30 seconds
+            setInterval(updateStats, 30000);
+        });
+    </script>
+</body>
+</html>
