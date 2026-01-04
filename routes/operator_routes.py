@@ -578,3 +578,242 @@ def get_system_status():
         'recent_activity': recent_activity,
         'timestamp': datetime.now().isoformat()
     })
+
+# ===== PHASE 3: PREDICTIVE TRAFFIC MANAGEMENT =====
+
+@bp.route('/api/prediction/density/<int:intersection_id>')
+@require_role('operator')
+def predict_density(intersection_id):
+    """Predict traffic density for an intersection"""
+    from traffic_prediction import predictor
+    
+    try:
+        prediction = predictor.predict_traffic_density(intersection_id)
+        return jsonify({
+            'success': True,
+            'intersection_id': intersection_id,
+            'prediction': prediction,
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/api/prediction/congestion/<int:intersection_id>')
+@require_role('operator')
+def detect_congestion_status(intersection_id):
+    """Detect congestion at an intersection"""
+    from traffic_prediction import predictor
+    
+    try:
+        congestion = predictor.detect_congestion(intersection_id)
+        return jsonify({
+            'success': True,
+            'intersection_id': intersection_id,
+            'congestion': congestion,
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/api/prediction/optimize/<int:intersection_id>')
+@require_role('operator')
+def get_optimization(intersection_id):
+    """Get optimized signal timing for an intersection"""
+    from traffic_prediction import predictor
+    
+    try:
+        optimization = predictor.optimize_signal_timing(intersection_id)
+        return jsonify({
+            'success': True,
+            'intersection_id': intersection_id,
+            'optimization': optimization,
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/api/prediction/optimize/<int:intersection_id>/apply', methods=['POST'])
+@require_role('operator')
+def apply_optimization(intersection_id):
+    """Apply optimized signal timing"""
+    from traffic_prediction import predictor
+    
+    try:
+        optimization = predictor.optimize_signal_timing(intersection_id)
+        
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # Update signal timings
+        cursor.execute('''
+            UPDATE traffic_signals
+            SET total_cycle_time = ?,
+                predictive_mode = 1
+            WHERE intersection_id = ? AND direction = 'NS'
+        ''', (optimization['ns_green_time'] + optimization['ns_amber_time'], intersection_id))
+        
+        cursor.execute('''
+            UPDATE traffic_signals
+            SET total_cycle_time = ?,
+                predictive_mode = 1
+            WHERE intersection_id = ? AND direction = 'EW'
+        ''', (optimization['ew_green_time'] + optimization['ew_amber_time'], intersection_id))
+        
+        # Log audit
+        log_audit(
+            user_id=g.user['id'],
+            action='apply_predictive_optimization',
+            resource_type='intersection',
+            resource_id=intersection_id,
+            old_value=None,
+            new_value=optimization,
+            ip_address=request.remote_addr
+        )
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Predictive optimization applied',
+            'optimization': optimization
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/api/prediction/network-health')
+@require_role('operator')
+def get_network_health():
+    """Get overall network health metrics"""
+    from traffic_prediction import predictor
+    
+    try:
+        health = predictor.get_network_health()
+        return jsonify({
+            'success': True,
+            'network_health': health,
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/api/prediction/emergency-routing/<int:intersection_id>')
+@require_role('operator')
+def get_emergency_routing(intersection_id):
+    """Get emergency routing suggestions"""
+    from traffic_prediction import predictor
+    
+    try:
+        routing = predictor.suggest_emergency_routing(intersection_id)
+        
+        if not routing:
+            return jsonify({'error': 'Intersection not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'routing': routing,
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/api/prediction/patterns')
+@require_role('operator')
+def get_violation_patterns():
+    """Analyze violation patterns"""
+    from traffic_prediction import predictor
+    
+    days = request.args.get('days', 7, type=int)
+    
+    try:
+        patterns = predictor.analyze_violation_patterns(days)
+        return jsonify({
+            'success': True,
+            'patterns': patterns,
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/api/prediction/report/<int:intersection_id>')
+@require_role('operator')
+def get_optimization_report(intersection_id):
+    """Generate comprehensive optimization report"""
+    from traffic_prediction import predictor
+    
+    try:
+        report = predictor.generate_optimization_report(intersection_id)
+        return jsonify({
+            'success': True,
+            'report': report,
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/api/prediction/auto-optimize', methods=['POST'])
+@require_role('operator')
+def auto_optimize_network():
+    """Automatically optimize all congested intersections"""
+    from traffic_prediction import predictor
+    
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # Get all active intersections
+        cursor.execute('SELECT id, name FROM intersections WHERE status = "active"')
+        intersections = cursor.fetchall()
+        
+        optimized = []
+        skipped = []
+        
+        for intersection_id, name in intersections:
+            congestion = predictor.detect_congestion(intersection_id)
+            
+            if congestion['is_congested']:
+                optimization = predictor.optimize_signal_timing(intersection_id)
+                
+                # Apply optimization
+                cursor.execute('''
+                    UPDATE traffic_signals
+                    SET total_cycle_time = ?,
+                        predictive_mode = 1
+                    WHERE intersection_id = ?
+                ''', (optimization['total_cycle_time'], intersection_id))
+                
+                optimized.append({
+                    'id': intersection_id,
+                    'name': name,
+                    'severity': congestion['severity']
+                })
+            else:
+                skipped.append({
+                    'id': intersection_id,
+                    'name': name,
+                    'reason': 'not_congested'
+                })
+        
+        # Log audit
+        log_audit(
+            user_id=g.user['id'],
+            action='auto_optimize_network',
+            resource_type='network',
+            resource_id=None,
+            old_value=None,
+            new_value={'optimized_count': len(optimized)},
+            ip_address=request.remote_addr
+        )
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'optimized': optimized,
+            'skipped': skipped,
+            'total_optimized': len(optimized),
+            'message': f'Optimized {len(optimized)} congested intersections'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
