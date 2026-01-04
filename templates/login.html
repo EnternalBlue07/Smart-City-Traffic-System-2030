@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Smart Traffic Management System</title>
+    <link rel="stylesheet" href="/static/css/theme.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="card login-card">
+            <div class="login-header">
+                <h1 class="login-title">
+                    {% if portal == 'operator' %}
+                    🚦 Operator Portal
+                    {% else %}
+                    👤 Citizen Portal
+                    {% endif %}
+                </h1>
+                <p class="login-subtitle">Smart Traffic Management System</p>
+            </div>
+
+            <form id="loginForm">
+                <input type="hidden" id="portal" value="{{ portal }}">
+                
+                <div class="form-group">
+                    <label class="form-label" for="username">Username</label>
+                    <input 
+                        type="text" 
+                        class="form-control" 
+                        id="username" 
+                        name="username" 
+                        placeholder="Enter your username" 
+                        required
+                        autocomplete="username"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <input 
+                        type="password" 
+                        class="form-control" 
+                        id="password" 
+                        name="password" 
+                        placeholder="Enter your password" 
+                        required
+                        autocomplete="current-password"
+                    >
+                </div>
+
+                <div class="form-check mb-3">
+                    <input type="checkbox" class="form-check-input" id="remember">
+                    <label class="form-check-label" for="remember">Remember me</label>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    <span id="loginButtonText">Login</span>
+                </button>
+
+                <div id="errorMessage" class="alert alert-danger mt-3" style="display: none;"></div>
+            </form>
+
+            {% if portal == 'citizen' %}
+            <div class="text-center mt-4">
+                <p style="color: var(--color-light);">
+                    Don't have an account? 
+                    <a href="#" id="showRegisterLink" style="color: var(--color-accent);">Register here</a>
+                </p>
+            </div>
+            {% endif %}
+
+            <div class="text-center mt-3">
+                <p style="color: var(--color-light); font-size: 12px;">
+                    {% if portal == 'operator' %}
+                    <a href="/login?portal=citizen" style="color: var(--color-accent);">Switch to Citizen Portal</a>
+                    {% else %}
+                    <a href="/login?portal=operator" style="color: var(--color-accent);">Switch to Operator Portal</a>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Registration Modal -->
+    <div class="modal" id="registerModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Register New Account</h3>
+                <button class="modal-close" onclick="closeRegisterModal()">&times;</button>
+            </div>
+            <form id="registerForm">
+                <div class="form-group">
+                    <label class="form-label" for="regUsername">Username</label>
+                    <input type="text" class="form-control" id="regUsername" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="regEmail">Email</label>
+                    <input type="email" class="form-control" id="regEmail" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="regPassword">Password</label>
+                    <input type="password" class="form-control" id="regPassword" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="regPhone">Phone Number</label>
+                    <input type="tel" class="form-control" id="regPhone" placeholder="+91XXXXXXXXXX">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="regFullName">Full Name</label>
+                    <input type="text" class="form-control" id="regFullName">
+                </div>
+
+                <div id="regErrorMessage" class="alert alert-danger" style="display: none;"></div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="button" class="btn btn-secondary" onclick="closeRegisterModal()" style="flex: 1;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">
+                        <span id="registerButtonText">Register</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/theme-utils.js"></script>
+    <script>
+        // Login form handler
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const portal = document.getElementById('portal').value;
+            
+            const errorDiv = document.getElementById('errorMessage');
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const btnText = document.getElementById('loginButtonText');
+            
+            // Show loading
+            submitBtn.disabled = true;
+            btnText.textContent = 'Logging in...';
+            errorDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password, portal })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showToast('Login successful!', 'success', 2000);
+                    setTimeout(() => {
+                        window.location.href = data.redirect_url || '/';
+                    }, 500);
+                } else {
+                    errorDiv.textContent = data.error || 'Login failed';
+                    errorDiv.style.display = 'block';
+                    submitBtn.disabled = false;
+                    btnText.textContent = 'Login';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                errorDiv.textContent = 'Network error. Please try again.';
+                errorDiv.style.display = 'block';
+                submitBtn.disabled = false;
+                btnText.textContent = 'Login';
+            }
+        });
+        
+        // Registration form handler
+        document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('regUsername').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const phone = document.getElementById('regPhone').value;
+            const full_name = document.getElementById('regFullName').value;
+            
+            const errorDiv = document.getElementById('regErrorMessage');
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const btnText = document.getElementById('registerButtonText');
+            
+            // Show loading
+            submitBtn.disabled = true;
+            btnText.textContent = 'Registering...';
+            errorDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch('/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, email, password, phone, full_name })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showToast('Registration successful! Please login.', 'success', 3000);
+                    closeRegisterModal();
+                    document.getElementById('username').value = username;
+                } else {
+                    errorDiv.textContent = data.error || 'Registration failed';
+                    errorDiv.style.display = 'block';
+                    submitBtn.disabled = false;
+                    btnText.textContent = 'Register';
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                errorDiv.textContent = 'Network error. Please try again.';
+                errorDiv.style.display = 'block';
+                submitBtn.disabled = false;
+                btnText.textContent = 'Register';
+            }
+        });
+        
+        // Show registration modal
+        document.getElementById('showRegisterLink')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('registerModal').classList.add('active');
+        });
+        
+        function closeRegisterModal() {
+            document.getElementById('registerModal').classList.remove('active');
+            document.getElementById('registerForm').reset();
+            document.getElementById('regErrorMessage').style.display = 'none';
+        }
+        
+        // Close modal on backdrop click
+        document.getElementById('registerModal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'registerModal') {
+                closeRegisterModal();
+            }
+        });
+    </script>
+</body>
+</html>

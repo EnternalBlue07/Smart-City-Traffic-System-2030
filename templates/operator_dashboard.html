@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operator Dashboard - Smart Traffic Management</title>
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .dashboard-container {
+            display: flex;
+            width: 100%;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .top-bar {
+            background: var(--color-dark);
+            padding: 1rem 2rem;
+            border-bottom: 2px solid var(--color-accent);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .top-bar h1 {
+            margin: 0;
+            color: var(--color-accent);
+            font-size: 1.5rem;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+            background: var(--color-base);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--color-dark);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 140, 0, 0.2);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--color-accent);
+        }
+
+        .stat-card i {
+            font-size: 2rem;
+            color: var(--color-accent);
+            margin-bottom: 1rem;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--color-light);
+            margin: 0.5rem 0;
+        }
+
+        .stat-label {
+            color: rgba(224, 224, 224, 0.7);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .network-map {
+            background: var(--color-dark);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 140, 0, 0.2);
+            min-height: 500px;
+        }
+
+        .map-container {
+            width: 100%;
+            height: 450px;
+            background: var(--color-base);
+            border-radius: 6px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .intersection-marker {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: var(--color-accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 0 20px rgba(255, 140, 0, 0.5);
+        }
+
+        .intersection-marker:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 30px rgba(255, 140, 0, 0.8);
+        }
+
+        .intersection-marker.warning {
+            background: var(--color-warning);
+        }
+
+        .intersection-marker.offline {
+            background: var(--color-danger);
+        }
+
+        .violations-feed {
+            background: var(--color-dark);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 140, 0, 0.2);
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .violation-item {
+            padding: 1rem;
+            background: var(--color-base);
+            border-radius: 6px;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid var(--color-accent);
+            transition: transform 0.2s;
+        }
+
+        .violation-item:hover {
+            transform: translateX(5px);
+        }
+
+        .violation-item.new {
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .violation-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .violation-plate {
+            font-weight: 700;
+            color: var(--color-accent);
+        }
+
+        .violation-time {
+            font-size: 0.875rem;
+            color: rgba(224, 224, 224, 0.6);
+        }
+
+        .violation-details {
+            font-size: 0.875rem;
+            color: var(--color-light);
+        }
+
+        .intersections-list {
+            background: var(--color-dark);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 140, 0, 0.2);
+        }
+
+        .intersection-card {
+            background: var(--color-base);
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(255, 140, 0, 0.1);
+        }
+
+        .intersection-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .intersection-name {
+            font-weight: 600;
+            color: var(--color-light);
+        }
+
+        .signals-display {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .signal-box {
+            flex: 1;
+            padding: 0.75rem;
+            background: var(--color-dark);
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .signal-direction {
+            font-size: 0.875rem;
+            color: rgba(224, 224, 224, 0.7);
+            margin-bottom: 0.5rem;
+        }
+
+        .signal-state {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin: 0 auto 0.5rem;
+        }
+
+        .signal-state.green {
+            background: var(--color-success);
+            box-shadow: 0 0 15px var(--color-success);
+        }
+
+        .signal-state.red {
+            background: var(--color-danger);
+            box-shadow: 0 0 15px var(--color-danger);
+        }
+
+        .signal-state.amber {
+            background: var(--color-warning);
+            box-shadow: 0 0 15px var(--color-warning);
+        }
+
+        .signal-timer {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--color-light);
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .control-buttons .btn {
+            flex: 1;
+            padding: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .signal-control-modal {
+            background: var(--color-dark);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 2px solid var(--color-accent);
+            width: 500px;
+            max-width: 90%;
+        }
+
+        .signal-control-options {
+            display: flex;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .state-option {
+            flex: 1;
+            padding: 1rem;
+            background: var(--color-base);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .state-option:hover {
+            border-color: var(--color-accent);
+        }
+
+        .state-option.selected {
+            border-color: var(--color-accent);
+            background: rgba(255, 140, 0, 0.1);
+        }
+
+        .state-option .signal-state {
+            margin: 0 auto 0.5rem;
+        }
+
+        .charts-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .chart-card {
+            background: var(--color-dark);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 140, 0, 0.2);
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 300px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--color-accent);
+        }
+
+        .loading i {
+            font-size: 3rem;
+            animation: spin 1s linear infinite;
+        }
+
+        .emergency-btn {
+            background: var(--color-danger) !important;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(231, 76, 60, 0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="main-content">
+            <div class="top-bar">
+                <h1><i class="fas fa-traffic-light"></i> Traffic Control Center</h1>
+                <div class="user-info">
+                    <span style="color: var(--color-light);">
+                        <i class="fas fa-user-shield"></i> {{ user.username }}
+                    </span>
+                    <button class="btn btn-secondary btn-sm" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <!-- Stats Grid -->
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card">
+                        <i class="fas fa-road"></i>
+                        <div class="stat-value" id="activeIntersections">-</div>
+                        <div class="stat-label">Active Intersections</div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div class="stat-value" id="violationsToday">-</div>
+                        <div class="stat-label">Violations Today</div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-gavel"></i>
+                        <div class="stat-value" id="pendingAppeals">-</div>
+                        <div class="stat-label">Pending Appeals</div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-signal"></i>
+                        <div class="stat-value" id="activeSignals">-</div>
+                        <div class="stat-label">Active Signals</div>
+                    </div>
+                </div>
+
+                <!-- Main Grid -->
+                <div class="main-grid">
+                    <!-- Network Map -->
+                    <div class="network-map">
+                        <h3 style="margin-top: 0; color: var(--color-accent);">
+                            <i class="fas fa-map-marked-alt"></i> Network Topology
+                        </h3>
+                        <div class="map-container" id="networkMap">
+                            <div class="loading">
+                                <i class="fas fa-spinner"></i>
+                                <p>Loading network...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Live Violations Feed -->
+                    <div class="violations-feed">
+                        <h3 style="margin-top: 0; color: var(--color-accent);">
+                            <i class="fas fa-video"></i> Live Violations Feed
+                        </h3>
+                        <div id="violationsFeed">
+                            <div class="loading">
+                                <i class="fas fa-spinner"></i>
+                                <p>Loading violations...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Intersections List with Signal Controls -->
+                <div class="intersections-list">
+                    <h3 style="margin-top: 0; color: var(--color-accent);">
+                        <i class="fas fa-sliders-h"></i> Intersection Controls
+                    </h3>
+                    <div id="intersectionsList">
+                        <div class="loading">
+                            <i class="fas fa-spinner"></i>
+                            <p>Loading intersections...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signal Control Modal -->
+    <div class="modal-overlay" id="signalControlModal">
+        <div class="signal-control-modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Control Signal</h3>
+                <button class="modal-close" onclick="closeSignalModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="modalIntersection" style="color: var(--color-light); margin-bottom: 1rem;"></p>
+                
+                <div class="signal-control-options">
+                    <div class="state-option" data-state="green" onclick="selectState('green')">
+                        <div class="signal-state green"></div>
+                        <div>Green</div>
+                    </div>
+                    <div class="state-option" data-state="amber" onclick="selectState('amber')">
+                        <div class="signal-state amber"></div>
+                        <div>Amber</div>
+                    </div>
+                    <div class="state-option" data-state="red" onclick="selectState('red')">
+                        <div class="signal-state red"></div>
+                        <div>Red</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Duration (seconds)</label>
+                    <input type="number" class="form-control" id="signalDuration" value="60" min="10" max="300">
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                <button class="btn btn-secondary" onclick="closeSignalModal()" style="flex: 1;">Cancel</button>
+                <button class="btn btn-primary" onclick="applySignalOverride()" style="flex: 1;">Apply Override</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/theme-utils.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        let currentSignalId = null;
+        let selectedState = 'green';
+        let socket = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadOverview();
+            loadIntersections();
+            loadViolations();
+            initWebSocket();
+            
+            // Refresh data periodically
+            setInterval(loadOverview, 10000);  // Every 10 seconds
+            setInterval(loadViolations, 5000);  // Every 5 seconds
+            setInterval(updateSignalTimers, 1000);  // Every second
+        });
+
+        // Load overview statistics
+        async function loadOverview() {
+            try {
+                const response = await fetch('/operator/api/overview');
+                const data = await response.json();
+                
+                document.getElementById('activeIntersections').textContent = 
+                    `${data.active_intersections}/${data.total_intersections}`;
+                document.getElementById('violationsToday').textContent = data.violations_today;
+                document.getElementById('pendingAppeals').textContent = data.pending_appeals;
+                document.getElementById('activeSignals').textContent = data.active_signals;
+            } catch (error) {
+                console.error('Failed to load overview:', error);
+            }
+        }
+
+        // Load intersections and render network map
+        async function loadIntersections() {
+            try {
+                const response = await fetch('/operator/api/intersections');
+                const data = await response.json();
+                
+                renderNetworkMap(data.intersections);
+                renderIntersectionsList(data.intersections);
+            } catch (error) {
+                console.error('Failed to load intersections:', error);
+            }
+        }
+
+        // Render network map
+        function renderNetworkMap(intersections) {
+            const mapContainer = document.getElementById('networkMap');
+            mapContainer.innerHTML = '';
+            
+            intersections.forEach((intersection, index) => {
+                const marker = document.createElement('div');
+                marker.className = `intersection-marker ${intersection.status}`;
+                marker.innerHTML = '<i class="fas fa-road"></i>';
+                marker.title = intersection.name;
+                
+                // Position markers in a grid pattern
+                const cols = 2;
+                const row = Math.floor(index / cols);
+                const col = index % cols;
+                const left = 20 + (col * 45);
+                const top = 20 + (row * 30);
+                
+                marker.style.left = `${left}%`;
+                marker.style.top = `${top}%`;
+                
+                marker.onclick = () => showIntersectionDetails(intersection.id);
+                
+                mapContainer.appendChild(marker);
+            });
+        }
+
+        // Render intersections list with controls
+        function renderIntersectionsList(intersections) {
+            const container = document.getElementById('intersectionsList');
+            
+            if (intersections.length === 0) {
+                container.innerHTML = '<p>No intersections found</p>';
+                return;
+            }
+            
+            container.innerHTML = intersections.map(intersection => `
+                <div class="intersection-card" data-intersection-id="${intersection.id}">
+                    <div class="intersection-header">
+                        <div class="intersection-name">${intersection.name}</div>
+                        <div>
+                            <span class="badge badge-${intersection.status}">${intersection.status}</span>
+                            <span class="badge badge-info">${intersection.mode}</span>
+                        </div>
+                    </div>
+                    <div class="signals-display" id="signals-${intersection.id}">
+                        <div class="signal-box">
+                            <div class="signal-direction">NS</div>
+                            <div class="signal-state ${intersection.ns_cycle || 'red'}"></div>
+                            <div class="signal-timer" id="timer-ns-${intersection.id}">--</div>
+                        </div>
+                        <div class="signal-box">
+                            <div class="signal-direction">EW</div>
+                            <div class="signal-state ${intersection.ew_cycle || 'red'}"></div>
+                            <div class="signal-timer" id="timer-ew-${intersection.id}">--</div>
+                        </div>
+                    </div>
+                    <div class="control-buttons">
+                        <button class="btn btn-secondary btn-sm" onclick="controlSignal(${intersection.id}, 'NS')">
+                            <i class="fas fa-sliders-h"></i> Control NS
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="controlSignal(${intersection.id}, 'EW')">
+                            <i class="fas fa-sliders-h"></i> Control EW
+                        </button>
+                        <button class="btn emergency-btn btn-sm" onclick="emergencyPreempt(${intersection.id})">
+                            <i class="fas fa-exclamation-triangle"></i> Emergency
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Load signal details
+            intersections.forEach(intersection => {
+                loadSignalDetails(intersection.id);
+            });
+        }
+
+        // Load signal details for an intersection
+        async function loadSignalDetails(intersectionId) {
+            try {
+                const response = await fetch(`/operator/api/intersections/${intersectionId}`);
+                const data = await response.json();
+                
+                data.signals.forEach(signal => {
+                    const timer = document.getElementById(`timer-${signal.direction.toLowerCase()}-${intersectionId}`);
+                    if (timer) {
+                        timer.textContent = `${signal.remaining_seconds}s`;
+                        timer.dataset.seconds = signal.remaining_seconds;
+                        timer.dataset.signalId = signal.id;
+                    }
+                });
+            } catch (error) {
+                console.error('Failed to load signal details:', error);
+            }
+        }
+
+        // Update signal timers
+        function updateSignalTimers() {
+            document.querySelectorAll('.signal-timer').forEach(timer => {
+                let seconds = parseInt(timer.dataset.seconds || 0);
+                if (seconds > 0) {
+                    seconds--;
+                    timer.dataset.seconds = seconds;
+                    timer.textContent = `${seconds}s`;
+                }
+            });
+        }
+
+        // Load violations feed
+        async function loadViolations() {
+            try {
+                const response = await fetch('/operator/api/violations/recent?limit=10');
+                const data = await response.json();
+                
+                renderViolationsFeed(data.violations);
+            } catch (error) {
+                console.error('Failed to load violations:', error);
+            }
+        }
+
+        // Render violations feed
+        function renderViolationsFeed(violations) {
+            const container = document.getElementById('violationsFeed');
+            
+            if (violations.length === 0) {
+                container.innerHTML = '<p>No recent violations</p>';
+                return;
+            }
+            
+            container.innerHTML = violations.map((v, index) => `
+                <div class="violation-item ${index === 0 ? 'new' : ''}">
+                    <div class="violation-header">
+                        <span class="violation-plate">${v.license_plate || 'Unknown'}</span>
+                        <span class="violation-time">${formatTime(v.timestamp)}</span>
+                    </div>
+                    <div class="violation-details">
+                        <div><strong>${v.violation_type}</strong></div>
+                        <div>${v.intersection_name || v.location}</div>
+                        <div>Camera: ${v.camera_id} | ₹${v.fine_amount}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Control signal modal
+        function controlSignal(intersectionId, direction) {
+            // Find signal ID
+            fetch(`/operator/api/intersections/${intersectionId}`)
+                .then(r => r.json())
+                .then(data => {
+                    const signal = data.signals.find(s => s.direction === direction);
+                    if (signal) {
+                        currentSignalId = signal.id;
+                        document.getElementById('modalTitle').textContent = `Control ${direction} Signal`;
+                        document.getElementById('modalIntersection').textContent = 
+                            `${data.intersection.name} - ${direction} Direction`;
+                        document.getElementById('signalControlModal').classList.add('active');
+                    }
+                });
+        }
+
+        function selectState(state) {
+            selectedState = state;
+            document.querySelectorAll('.state-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            document.querySelector(`.state-option[data-state="${state}"]`).classList.add('selected');
+        }
+
+        function closeSignalModal() {
+            document.getElementById('signalControlModal').classList.remove('active');
+        }
+
+        async function applySignalOverride() {
+            if (!currentSignalId) return;
+            
+            const duration = parseInt(document.getElementById('signalDuration').value);
+            
+            try {
+                showLoading();
+                const response = await fetch(`/operator/api/signals/${currentSignalId}/override`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({state: selectedState, duration})
+                });
+                
+                const data = await response.json();
+                hideLoading();
+                
+                if (response.ok) {
+                    showToast(data.message, 'success');
+                    closeSignalModal();
+                    loadIntersections();
+                } else {
+                    showToast(data.error || 'Override failed', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showToast('Network error', 'error');
+            }
+        }
+
+        async function emergencyPreempt(intersectionId) {
+            if (!confirm('Activate emergency preemption? This will set all signals to RED.')) {
+                return;
+            }
+            
+            try {
+                showLoading();
+                const response = await fetch(`/operator/api/intersections/${intersectionId}/emergency`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                hideLoading();
+                
+                if (response.ok) {
+                    showToast(data.message, 'warning');
+                    loadIntersections();
+                } else {
+                    showToast(data.error || 'Emergency preemption failed', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showToast('Network error', 'error');
+            }
+        }
+
+        function showIntersectionDetails(intersectionId) {
+            // Could open a detailed modal or navigate to dedicated page
+            console.log('Show details for intersection:', intersectionId);
+        }
+
+        // WebSocket for real-time updates
+        function initWebSocket() {
+            socket = io('/operator');
+            
+            socket.on('connect', () => {
+                console.log('Connected to operator channel');
+            });
+            
+            socket.on('operator_online', (data) => {
+                showToast('Another operator joined', 'info', 2000);
+            });
+            
+            // Listen to signal updates
+            const signalsSocket = io('/signals');
+            signalsSocket.on('signal_state_update', (data) => {
+                console.log('Signal update:', data);
+                // Update UI in real-time
+                loadIntersections();
+            });
+            
+            // Listen to violations
+            const notifSocket = io('/notifications');
+            notifSocket.on('violation_detected', (data) => {
+                showToast(`New violation: ${data.plate}`, 'warning', 3000);
+                loadViolations();
+            });
+        }
+
+        async function logout() {
+            try {
+                await fetch('/auth/logout', {method: 'POST'});
+                window.location.href = '/login?portal=operator';
+            } catch (error) {
+                console.error('Logout failed:', error);
+            }
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = Math.floor((now - date) / 1000);
+            
+            if (diff < 60) return 'Just now';
+            if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+            return date.toLocaleDateString();
+        }
+    </script>
+</body>
+</html>
